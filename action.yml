@@ -1,0 +1,23 @@
+name: 'Hello World'
+description: 'Greet someone'
+inputs:
+  CopyBuildToArtifacts:
+    description: 'Copy Build to Artifacts'
+    required: true
+    default: false
+  RestoreBuildFromArtifacts:
+    description: 'Restore Build From Artifacts'
+    required: true
+    default: false 
+runs:
+  using: "composite"
+  steps:
+    # This step is needed for finding the Powersehll-Script!
+    - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
+      shell: bash
+    - run: BuildArtifacts.ps1 -CopyBuildToArtifacts
+      if: ${{ inputs.CopyBuildToArtifacts }}
+      shell: pwsh
+    - run: BuildArtifacts.ps1 -RestoreBuildFromArtifacts
+      if: ${{ inputs.RestoreBuildFromArtifacts }}
+      shell: pwsh
