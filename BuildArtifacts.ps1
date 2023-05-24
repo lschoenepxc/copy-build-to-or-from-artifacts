@@ -4,9 +4,6 @@ param (
     [switch]$RestoreBuildFromArtifacts
 )
 
-# ps1 from composite action
-Write-Host "Goodbye!";
-
 # Folder Paths
 $RootPath = $MyInvocation.PSScriptRoot;
 
@@ -51,50 +48,51 @@ function Initialize {
 
 function CopyBuildToArtifacts([string]$TargetPath){
     Write-Step "Going into Copy Build To Artifacts";
-    # ForEach($csprojItem in Get-ChildItem $SearchPath -Recurse -Include "*.csproj") { 
-    #     # Check if the project should be packed
-    #     if (-not (ShouldCreatePackage $csprojItem)) { continue; }
+    ForEach($csprojItem in Get-ChildItem $SearchPath -Recurse -Include "*.csproj") { 
+        # Check if the project should be packed
+        if (-not (ShouldCreatePackage $csprojItem)) { continue; }
 
-    #     $projectName = ([System.IO.Path]::GetFileNameWithoutExtension($csprojItem.Name));
-    #     $assemblyPath = [System.IO.Path]::Combine($csprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
+        $projectName = ([System.IO.Path]::GetFileNameWithoutExtension($csprojItem.Name));
+        $assemblyPath = [System.IO.Path]::Combine($csprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
         
-    #     # Remove `staticwebassets.runtime.json` since it has no relevance for 
-    #     # publishing but would break the build
-    #     Get-ChildItem -Path $assemblyPath -Recurse -Filter "*.staticwebassets.runtime.json" | 
-    #         ForEach-Object { Remove-Item $_.FullName -Force }
+        # Remove `staticwebassets.runtime.json` since it has no relevance for 
+        # publishing but would break the build
+        Get-ChildItem -Path $assemblyPath -Recurse -Filter "*.staticwebassets.runtime.json" | 
+            ForEach-Object { Remove-Item $_.FullName -Force }
 
-    #     # Check if the project was build
-    #     If(-not (Test-Path $assemblyPath)){ continue; }
+        # Check if the project was build
+        If(-not (Test-Path $assemblyPath)){ continue; }
 
-    #     $assemblyArtifactPath = [System.IO.Path]::Combine($TargetPath, $projectName, "bin", $env:MORYX_BUILD_CONFIG);
-    #     CopyAndReplaceFolder $assemblyPath $assemblyArtifactPath;
+        $assemblyArtifactPath = [System.IO.Path]::Combine($TargetPath, $projectName, "bin", $env:MORYX_BUILD_CONFIG);
+        CopyAndReplaceFolder $assemblyPath $assemblyArtifactPath;
 
-    #     $objPath = [System.IO.Path]::Combine($csprojItem.DirectoryName, "obj");
-    #     $objArtifactPath = [System.IO.Path]::Combine($TargetPath, $projectName, "obj");
-    #     CopyAndReplaceFolder $objPath $objArtifactPath;
-    #     Write-Host "Copied build of $csprojItem to artifacts..." 
-    # }
+        $objPath = [System.IO.Path]::Combine($csprojItem.DirectoryName, "obj");
+        $objArtifactPath = [System.IO.Path]::Combine($TargetPath, $projectName, "obj");
+        CopyAndReplaceFolder $objPath $objArtifactPath;
+        Write-Host "Copied build of $csprojItem to artifacts..." 
+    }
 }
 
 function RestoreBuildFromArtifacts {
     Write-Step "Going into Restore Build from artifacts";
 
-    # Create txt for test with artifacts path
-    New-Item $BuildArtifacts\test.txt;
-    Set-Content $BuildArtifacts\test.txt 'Test for artifacts. Laura Schoene'
-    # Restore build artifacts to project (only one project at a time)
-    # foreach ($CsprojItem in Get-ChildItem $RootPath -Recurse -Filter *.csproj) {
-    #     if (-not (ShouldCreatePackage $CsprojItem)) { return; }
+    # # Create txt for test with artifacts path
+    # New-Item $BuildArtifacts\test.txt;
+    # Set-Content $BuildArtifacts\test.txt 'Test for artifacts. Laura Schoene'
 
-    #     Write-Host "Copy build of $CsprojItem from artifacts..." 
-    #     $artifacts = (&{If($env:MORYX_COMMERCIAL_BUILD -eq $True) {$CommercialBuildArtifacts} Else {$BuildArtifacts}});
-    #     $buildPath = [System.IO.Path]::Combine($CsprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
-    #     $projectBinArtifacts = [System.IO.Path]::Combine($artifacts, $projectName, "bin", $env:MORYX_BUILD_CONFIG);
-    #     CopyAndReplaceFolder $projectBinArtifacts $buildPath;
-    #     $objPath = [System.IO.Path]::Combine($CsprojItem.DirectoryName, "obj");
-    #     $projectObjArtifacts = [System.IO.Path]::Combine($artifacts, $projectName, "obj");
-    #     CopyAndReplaceFolder $projectObjArtifacts $objPath;
-    # }
+    # Restore build artifacts to project (only one project at a time)
+    foreach ($CsprojItem in Get-ChildItem $RootPath -Recurse -Filter *.csproj) {
+        if (-not (ShouldCreatePackage $CsprojItem)) { return; }
+
+        Write-Host "Copy build of $CsprojItem from artifacts..." 
+        $artifacts = (&{If($env:MORYX_COMMERCIAL_BUILD -eq $True) {$CommercialBuildArtifacts} Else {$BuildArtifacts}});
+        $buildPath = [System.IO.Path]::Combine($CsprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
+        $projectBinArtifacts = [System.IO.Path]::Combine($artifacts, $projectName, "bin", $env:MORYX_BUILD_CONFIG);
+        CopyAndReplaceFolder $projectBinArtifacts $buildPath;
+        $objPath = [System.IO.Path]::Combine($CsprojItem.DirectoryName, "obj");
+        $projectObjArtifacts = [System.IO.Path]::Combine($artifacts, $projectName, "obj");
+        CopyAndReplaceFolder $projectObjArtifacts $objPath;
+    }
 }
 
 function ShouldCreatePackage($csprojItem){
