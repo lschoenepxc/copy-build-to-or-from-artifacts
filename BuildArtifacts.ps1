@@ -50,7 +50,7 @@ function CopyBuildToArtifacts([string]$TargetPath){
     Write-Step "Going into Copy Build To Artifacts";
     ForEach($csprojItem in Get-ChildItem $SearchPath -Recurse -Include "*.csproj") { 
         # Check if the project should be packed
-        if (-not (ShouldCreatePackage $csprojItem)) { continue; }
+        # if (-not (ShouldCreatePackage $csprojItem)) { continue; }
 
         $projectName = ([System.IO.Path]::GetFileNameWithoutExtension($csprojItem.Name));
         $assemblyPath = [System.IO.Path]::Combine($csprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
@@ -76,16 +76,13 @@ function CopyBuildToArtifacts([string]$TargetPath){
 function RestoreBuildFromArtifacts {
     Write-Step "Going into Restore Build from artifacts";
 
-    # # Create txt for test with artifacts path
-    # New-Item $BuildArtifacts\test.txt;
-    # Set-Content $BuildArtifacts\test.txt 'Test for artifacts. Laura Schoene'
-
     # Restore build artifacts to project (only one project at a time)
-    foreach ($CsprojItem in Get-ChildItem $RootPath -Recurse -Filter *.csproj) {
-        if (-not (ShouldCreatePackage $CsprojItem)) { return; }
+    ForEach($csprojItem in Get-ChildItem $SearchPath -Recurse -Include "*.csproj") {
+        # if (-not (ShouldCreatePackage $CsprojItem)) { continue; }
 
         Write-Host "Copy build of $CsprojItem from artifacts..." 
         $artifacts = (&{If($env:MORYX_COMMERCIAL_BUILD -eq $True) {$CommercialBuildArtifacts} Else {$BuildArtifacts}});
+        $projectName = ([System.IO.Path]::GetFileNameWithoutExtension($csprojItem.Name));
         $buildPath = [System.IO.Path]::Combine($CsprojItem.DirectoryName, "bin", $env:MORYX_BUILD_CONFIG);
         $projectBinArtifacts = [System.IO.Path]::Combine($artifacts, $projectName, "bin", $env:MORYX_BUILD_CONFIG);
         CopyAndReplaceFolder $projectBinArtifacts $buildPath;
@@ -95,16 +92,16 @@ function RestoreBuildFromArtifacts {
     }
 }
 
-function ShouldCreatePackage($csprojItem){
-    $csprojFullName = $csprojItem.FullName;
-    [xml]$csprojContent = Get-Content $csprojFullName
-    $createPackage = $csprojContent.Project.PropertyGroup | Where-Object {-not ($null -eq $_.CreatePackage)} | ForEach-Object{$_.CreatePackage}
-    if ($null -eq $createPackage -or "false" -eq $createPackage) {
-        Write-Host-Warning "Skipping $csprojItem..."
-        return $False;
-    }
-    return $True;
-}
+# function ShouldCreatePackage($csprojItem){
+#     $csprojFullName = $csprojItem.FullName;
+#     [xml]$csprojContent = Get-Content $csprojFullName
+#     $createPackage = $csprojContent.Project.PropertyGroup | Where-Object {-not ($null -eq $_.CreatePackage)} | ForEach-Object{$_.CreatePackage}
+#     if ($null -eq $createPackage -or "false" -eq $createPackage) {
+#         Write-Host-Warning "Skipping $csprojItem..."
+#         return $False;
+#     }
+#     return $True;
+# }
 
 function CreateFolderIfNotExists([string]$Folder) {
     if (-not (Test-Path $Folder)) {
@@ -132,6 +129,10 @@ function Write-Step([string]$step) {
 
 function Write-Variable ([string]$variableName, [string]$variableValue) {
     Write-Host ($variableName + " = " + $variableValue)
+}
+
+function Write-Host-Warning([string]$message) {
+    Write-Host $message -ForegroundColor Yellow
 }
 
 # Initialize Toolkit
